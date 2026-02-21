@@ -606,6 +606,7 @@ function showFloatingText(x, y, text) {
 }
 
 // ---- LOGOUT LOGIC ----
+const btnLogout = document.getElementById('btn-logout');
 if (btnLogout) {
     btnLogout.addEventListener('click', () => {
         localStorage.removeItem('tapper_token');
