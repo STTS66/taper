@@ -966,11 +966,10 @@ function openChatDialog(userId, username, avatar) {
 function stopChatPolling() {
     if (chatPollInterval) clearInterval(chatPollInterval);
     chatPollInterval = null;
-    currentChatUserId = null;
 }
 
 function startChatPolling() {
-    stopChatPolling();
+    if (chatPollInterval) clearInterval(chatPollInterval);
     chatPollInterval = setInterval(loadMessages, 3000);
 }
 
@@ -1030,6 +1029,7 @@ function renderMessages(msgs) {
 
 btnBackToChats.addEventListener('click', () => {
     stopChatPolling();
+    currentChatUserId = null;
     loadChatContacts();
 });
 
