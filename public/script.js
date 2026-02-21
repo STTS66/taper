@@ -11,7 +11,6 @@ const authError = document.getElementById('auth-error');
 const playerNameEl = document.getElementById('player-name');
 const balanceEl = document.getElementById('balance');
 const clickPowerEl = document.getElementById('click-power');
-const btnLogout = document.getElementById('btn-logout');
 
 const tapTarget = document.getElementById('tap-target');
 const floatingTexts = document.getElementById('floating-texts');
@@ -94,6 +93,7 @@ async function handleAuth() {
             gameState.balance = data.user.balance;
             gameState.clickPower = data.user.click_power;
             gameState.claimedRewards = data.user.claimed_rewards || [];
+            gameState.avatarUrl = data.user.avatar_url || '';
             localStorage.setItem('tapper_token', data.token);
             showGame();
         } else {
@@ -105,15 +105,133 @@ async function handleAuth() {
 }
 
 btnPlay.addEventListener('click', handleAuth);
-btnLogout.addEventListener('click', () => {
-    localStorage.removeItem('tapper_token');
-    gameState.token = null;
-    saveProgress();
-    gameUI.classList.add('hidden');
-    authOverlay.classList.remove('hidden');
-    usernameInput.value = '';
-    passwordInput.value = '';
+
+const btnLogout = document.getElementById('btn-logout');
+if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+        localStorage.removeItem('tapper_token');
+        gameState.token = null;
+        saveProgress();
+        gameUI.classList.add('hidden');
+        authOverlay.classList.remove('hidden');
+        usernameInput.value = '';
+        passwordInput.value = '';
+    });
+}
+
+// ---------------- PROFILE LOGIC ----------------
+const profileUsernameEl = document.getElementById('profile-username');
+const profileAvatarUrlEl = document.getElementById('profile-avatar-url');
+const profileAvatarPreviewEl = document.getElementById('profile-avatar-preview');
+const headerAvatarEl = document.getElementById('header-avatar');
+const btnSaveProfile = document.getElementById('btn-save-profile');
+const profileMsg = document.getElementById('profile-msg');
+
+const profileOldPassEl = document.getElementById('profile-old-pass');
+const profileNewPassEl = document.getElementById('profile-new-pass');
+const btnChangePassword = document.getElementById('btn-change-password');
+
+function loadProfileUI() {
+    profileUsernameEl.value = gameState.username;
+
+    if (gameState.avatarUrl) {
+        profileAvatarUrlEl.value = gameState.avatarUrl;
+        profileAvatarPreviewEl.src = gameState.avatarUrl;
+        headerAvatarEl.src = gameState.avatarUrl;
+        headerAvatarEl.style.display = 'block';
+    } else {
+        profileAvatarUrlEl.value = '';
+        profileAvatarPreviewEl.src = 'https://via.placeholder.com/100';
+        headerAvatarEl.style.display = 'none';
+    }
+}
+
+btnSaveProfile.addEventListener('click', async () => {
+    const newUsername = profileUsernameEl.value.trim();
+    const newAvatarUrl = profileAvatarUrlEl.value.trim();
+
+    if (!newUsername) {
+        profileMsg.style.color = '#ff4d4d';
+        profileMsg.textContent = 'Имя не может быть пустым';
+        return;
+    }
+
+    profileMsg.style.color = 'white';
+    profileMsg.textContent = 'Сохранение...';
+
+    try {
+        const res = await fetch(`${API_URL}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${gameState.token}`
+            },
+            body: JSON.stringify({ username: newUsername, avatar_url: newAvatarUrl })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            profileMsg.style.color = '#00f2fe';
+            profileMsg.textContent = 'Профиль успешно сохранен!';
+
+            gameState.username = newUsername;
+            gameState.avatarUrl = newAvatarUrl;
+            gameState.token = data.token; // Server gives a new token because username is used in JWT payload
+            localStorage.setItem('tapper_token', data.token);
+
+            updateUI();
+            loadProfileUI();
+        } else {
+            profileMsg.style.color = '#ff4d4d';
+            profileMsg.textContent = data.error || 'Ошибка сохранения';
+        }
+    } catch (e) {
+        profileMsg.style.color = '#ff4d4d';
+        profileMsg.textContent = 'Ошибка сети';
+    }
 });
+
+btnChangePassword.addEventListener('click', async () => {
+    const oldPassword = profileOldPassEl.value;
+    const newPassword = profileNewPassEl.value;
+
+    if (!oldPassword || !newPassword) {
+        profileMsg.style.color = '#ff4d4d';
+        profileMsg.textContent = 'Заполните оба пароля';
+        return;
+    }
+
+    profileMsg.style.color = 'white';
+    profileMsg.textContent = 'Смена пароля...';
+
+    try {
+        const res = await fetch(`${API_URL}/profile/password`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${gameState.token}`
+            },
+            body: JSON.stringify({ oldPassword, newPassword })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            profileMsg.style.color = '#00f2fe';
+            profileMsg.textContent = 'Пароль успешно изменен!';
+            profileOldPassEl.value = '';
+            profileNewPassEl.value = '';
+        } else {
+            profileMsg.style.color = '#ff4d4d';
+            profileMsg.textContent = data.error || 'Ошибка смены пароля';
+        }
+    } catch (e) {
+        profileMsg.style.color = '#ff4d4d';
+        profileMsg.textContent = 'Ошибка сети';
+    }
+});
+// -----------------------------------------------
 
 function showGame() {
     authOverlay.classList.add('hidden');
@@ -130,6 +248,7 @@ function showGame() {
 
     updateUI();
     loadQuests();
+    loadProfileUI();
 }
 
 // -------------- ADMIN LOGIC --------------
@@ -149,12 +268,114 @@ async function fetchAdminStats() {
         if (res.ok) {
             const data = await res.json();
             adminUserCountEl.textContent = data.totalUsers;
-        } else {
-            console.error('Failed to load admin stats');
         }
+
+        // Fetch Users List
+        const usersRes = await fetch(`${API_URL}/admin/users`, {
+            headers: { 'Authorization': `Bearer ${gameState.token}` }
+        });
+        if (usersRes.ok) {
+            const users = await usersRes.json();
+            const usersListEl = document.getElementById('admin-users-list');
+            usersListEl.innerHTML = '';
+            users.forEach(u => {
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.background = 'rgba(255,255,255,0.1)';
+                div.style.borderRadius = '5px';
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color:var(--accent)">${u.username}</strong>
+                            <span style="color: gray; font-size: 0.8em; margin-left:10px;">ID: ${u.id}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>🪙 ${parseInt(u.balance).toLocaleString('ru-RU')}</div>
+                            <div style="font-size: 0.8em; color: gray;">💪 ${parseInt(u.click_power).toLocaleString('ru-RU')}</div>
+                        </div>
+                    </div>
+                `;
+                usersListEl.appendChild(div);
+            });
+        }
+
+        // Render Quests List for Admin
+        renderAdminQuests();
     } catch (e) {
         console.error(e);
     }
+}
+
+async function renderAdminQuests() {
+    const listEl = document.getElementById('admin-quests-list');
+    listEl.innerHTML = '';
+
+    // Use the dynamicRewards that already fetched the quests
+    const globalQuests = dynamicRewards.filter(q => !q.id.startsWith('daily_random_'));
+    if (globalQuests.length === 0) {
+        listEl.innerHTML = '<div style="color: gray;">Нет созданных квестов</div>';
+        return;
+    }
+
+    globalQuests.forEach(q => {
+        const div = document.createElement('div');
+        div.style.padding = '10px';
+        div.style.background = 'rgba(255,255,255,0.1)';
+        div.style.borderRadius = '5px';
+        div.innerHTML = `
+            <div style="margin-bottom: 10px;">
+                <strong style="color:var(--accent)">${q.title}</strong>
+                <p style="font-size: 0.9em; margin-top: 5px;">${q.desc}</p>
+                <div style="font-size: 0.8em; color: #ffd700; margin-top: 5px;">Награда: ${q.reward_amount.toLocaleString('ru-RU')} 🪙</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn primary" style="padding: 5px 10px; font-size: 0.8em; flex: 1;" onclick="editAdminQuest('${q.id}')">✏️ Награда</button>
+                <button class="btn" style="padding: 5px 10px; font-size: 0.8em; background: #ff4d4d; color: white; flex: 1;" onclick="deleteAdminQuest('${q.id}')">🗑️ Удалить</button>
+            </div>
+        `;
+        listEl.appendChild(div);
+    });
+}
+
+window.deleteAdminQuest = async function (questId) {
+    if (!confirm('Удалить этот квест у всех игроков?')) return;
+    try {
+        const res = await fetch(`${API_URL}/admin/quests/${questId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${gameState.token}` }
+        });
+        if (res.ok) {
+            await loadQuests();
+            renderAdminQuests();
+        }
+    } catch (e) { console.error(e); }
+}
+
+window.editAdminQuest = async function (questId) {
+    const quest = dynamicRewards.find(q => q.id === questId);
+    if (!quest) return;
+
+    const newReward = prompt(`Введите новую награду для "${quest.title}":`, quest.reward_amount);
+    if (!newReward || isNaN(parseInt(newReward))) return;
+
+    try {
+        const res = await fetch(`${API_URL}/admin/quests/${questId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${gameState.token}`
+            },
+            body: JSON.stringify({
+                title: quest.title,
+                description: quest.desc,
+                reward_amount: parseInt(newReward)
+            })
+        });
+        if (res.ok) {
+            await loadQuests();
+            renderAdminQuests();
+        }
+    } catch (e) { console.error(e); }
 }
 
 async function handleAddAdminQuest() {
@@ -314,6 +535,8 @@ navBtns.forEach(btn => {
             renderRewards();
         } else if (tabId === 'tab-top') {
             renderLeaderboard();
+        } else if (tabId === 'tab-profile') {
+            loadProfileUI();
         }
     });
 });

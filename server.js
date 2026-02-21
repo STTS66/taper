@@ -121,6 +121,56 @@ app.post('/api/save', authenticateToken, async (req, res) => {
     }
 });
 
+// ------------------ PROFILE API ------------------
+app.put('/api/profile', authenticateToken, async (req, res) => {
+    try {
+        const { username, avatar_url } = req.body;
+        if (!username || username.trim() === '') {
+            return res.status(400).json({ error: 'Username cannot be empty' });
+        }
+
+        // Check if username is taken by someone else
+        const existing = await db.query('SELECT * FROM users WHERE username = $1 AND id != $2', [username, req.user.id]);
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Username is already taken' });
+        }
+
+        await db.query('UPDATE users SET username = $1, avatar_url = $2 WHERE id = $3', [username, avatar_url, req.user.id]);
+
+        // Return new token because username changed
+        const token = jwt.sign({ id: req.user.id, username: username }, JWT_SECRET);
+        res.json({ success: true, token, username, avatar_url });
+    } catch (err) {
+        console.error('Profile update error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.put('/api/profile/password', authenticateToken, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        if (!newPassword || newPassword.length < 5) {
+            return res.status(400).json({ error: 'New password must be at least 5 characters' });
+        }
+
+        const result = await db.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+        const validPassword = await bcrypt.compare(oldPassword, result.rows[0].password_hash);
+        if (!validPassword) {
+            return res.status(400).json({ error: 'Неверный старый пароль' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+        await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, req.user.id]);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Password error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+// -------------------------------------------------
+
 // Leaderboard
 app.get('/api/leaderboard', async (req, res) => {
     try {
@@ -179,6 +229,51 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
         const userCount = result.rows[0].count;
 
         res.json({ totalUsers: parseInt(userCount) });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/admin/quests/:id', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.username !== 'admin') {
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+        const { id } = req.params;
+        await db.query('DELETE FROM quests WHERE string_id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.put('/api/admin/quests/:id', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.username !== 'admin') {
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+        const { id } = req.params;
+        const { title, description, reward_amount } = req.body;
+        await db.query(
+            'UPDATE quests SET title = $1, description = $2, reward_amount = $3 WHERE string_id = $4',
+            [title, description, reward_amount, id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('/api/admin/users', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.username !== 'admin') {
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+        const result = await db.query('SELECT id, username, balance, click_power, role FROM users ORDER BY id DESC');
+        res.json(result.rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
