@@ -27,6 +27,8 @@ function authenticateToken(req, res, next) {
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) return res.status(403).json({ error: 'Invalid token' });
         req.user = user;
+        // Update last online
+        db.query('UPDATE users SET last_online = CURRENT_TIMESTAMP WHERE id = $1', [user.id]).catch(e => console.error(e));
         next();
     });
 }
@@ -178,11 +180,99 @@ app.put('/api/profile/password', authenticateToken, async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const result = await db.query(
-            "SELECT username, balance, click_power, rebirths FROM users WHERE role != 'admin' ORDER BY balance DESC LIMIT 50"
+            "SELECT id, username, balance, click_power, rebirths FROM users WHERE role != 'admin' ORDER BY balance DESC LIMIT 50"
         );
         res.json(result.rows);
     } catch (err) {
         console.error('Leaderboard error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ------------------ CHAT & BLOCKS ------------------
+
+// Get active chats & users
+app.get('/api/chats', authenticateToken, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT DISTINCT u.id, u.username, u.avatar_url, u.role, u.last_online,
+            (NOW() - u.last_online < INTERVAL '2 minutes') as is_online
+            FROM users u
+            WHERE u.id != $1
+            ORDER BY u.last_online DESC NULLS LAST
+            LIMIT 100
+        `, [req.user.id]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Chats error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get messages with a specific user
+app.get('/api/messages/:targetId', authenticateToken, async (req, res) => {
+    try {
+        const targetId = parseInt(req.params.targetId);
+        const result = await db.query(`
+            SELECT * FROM messages
+            WHERE (sender_id = $1 AND receiver_id = $2)
+               OR (sender_id = $2 AND receiver_id = $1)
+            ORDER BY created_at ASC
+        `, [req.user.id, targetId]);
+
+
+        // Check if I blocked them or they blocked me
+        const blockCheck = await db.query(
+            'SELECT blocker_id FROM user_blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)',
+            [req.user.id, targetId]
+        );
+        let iBlockedThem = false;
+        let theyBlockedMe = false;
+        blockCheck.rows.forEach(r => {
+            if (r.blocker_id === req.user.id) iBlockedThem = true;
+            if (r.blocker_id === targetId) theyBlockedMe = true;
+        });
+
+        res.json({ messages: result.rows, iBlockedThem, theyBlockedMe });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Send message
+app.post('/api/messages', authenticateToken, async (req, res) => {
+    try {
+        const { receiver_id, text, image_url } = req.body;
+        if (!text && !image_url) return res.status(400).json({ error: 'Empty message' });
+
+        // Check if receiver blocked me
+        const blockCheck = await db.query('SELECT 1 FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2', [receiver_id, req.user.id]);
+        if (blockCheck.rows.length > 0) return res.status(403).json({ error: 'Пользователь ограничил доступ к чату с ним.' });
+
+        const result = await db.query(
+            'INSERT INTO messages (sender_id, receiver_id, text, image_url) VALUES ($1, $2, $3, $4) RETURNING *',
+            [req.user.id, receiver_id, text, image_url]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Toggle Block User
+app.post('/api/users/:targetId/block', authenticateToken, async (req, res) => {
+    try {
+        const targetId = parseInt(req.params.targetId);
+        const existing = await db.query('SELECT 1 FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2', [req.user.id, targetId]);
+
+        if (existing.rows.length > 0) {
+            await db.query('DELETE FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2', [req.user.id, targetId]);
+            res.json({ blocked: false });
+        } else {
+            await db.query('INSERT INTO user_blocks (blocker_id, blocked_id) VALUES ($1, $2)', [req.user.id, targetId]);
+            res.json({ blocked: true });
+        }
+    } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -275,7 +365,11 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied.' });
         }
-        const result = await db.query('SELECT id, username, balance, click_power, rebirths, role FROM users ORDER BY id DESC');
+        const result = await db.query(`
+            SELECT id, username, balance, click_power, rebirths, role, last_online,
+            (NOW() - last_online < INTERVAL '2 minutes') as is_online
+            FROM users ORDER BY id DESC
+        `);
         res.json(result.rows);
     } catch (err) {
         console.error(err);

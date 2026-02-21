@@ -693,6 +693,8 @@ navBtns.forEach(btn => {
             renderLeaderboard();
         } else if (tabId === 'tab-profile') {
             loadProfileUI();
+        } else if (tabId === 'tab-chat') {
+            loadChatContacts();
         }
     });
 });
@@ -719,6 +721,16 @@ async function renderLeaderboard() {
                 div.className = `reward-item ${isMe ? 'highlight-me' : ''}`;
                 div.style.background = isMe ? 'rgba(0, 242, 254, 0.2)' : 'rgba(0, 0, 0, 0.3)';
                 div.style.marginBottom = '10px';
+
+                if (!isMe) {
+                    div.style.cursor = 'pointer';
+                    div.title = 'Нажмите, чтобы открыть чат';
+                    div.onclick = () => {
+                        // Switch to chat tab
+                        document.querySelector('[data-tab="tab-chat"]').click();
+                        openChatDialog(player.id, player.username, 'https://via.placeholder.com/40');
+                    };
+                }
 
                 let medal = `#${index + 1}`;
                 if (index === 0) medal = '🥇';
@@ -856,4 +868,235 @@ function claimReward(id) {
         renderRewards();
         scheduleSave();
     }
+}
+
+// ---------------- CHAT LOGIC ----------------
+const chatListView = document.getElementById('chat-list-view');
+const chatDialogView = document.getElementById('chat-dialog-view');
+const chatContactsList = document.getElementById('chat-contacts-list');
+const chatMessagesArea = document.getElementById('chat-messages-area');
+const chatCurrentUsername = document.getElementById('chat-current-username');
+const chatCurrentAvatar = document.getElementById('chat-current-avatar');
+const chatInputText = document.getElementById('chat-input-text');
+const chatImageUpload = document.getElementById('chat-image-upload');
+const btnChatSend = document.getElementById('btn-chat-send');
+const btnBackToChats = document.getElementById('btn-back-to-chats');
+const btnChatBlockUser = document.getElementById('btn-chat-block-user');
+
+let currentChatUserId = null;
+let chatPollInterval = null;
+let uploadedChatImageBase64 = null;
+let isCurrentChatBlocked = false;
+
+async function loadChatContacts() {
+    chatListView.classList.remove('hidden');
+    chatDialogView.classList.add('hidden');
+    stopChatPolling();
+
+    chatContactsList.innerHTML = '<div style="text-align:center;">Загрузка...</div>';
+    try {
+        const res = await fetch(`${API_URL}/chats`, {
+            headers: { 'Authorization': `Bearer ${gameState.token}` }
+        });
+        if (res.ok) {
+            const users = await res.json();
+            chatContactsList.innerHTML = '';
+            if (users.length === 0) {
+                chatContactsList.innerHTML = '<div style="text-align:center; color: var(--text-muted);">Нет чатов.<br><br>Откройте меню "Топ"<br>и нажмите на любого игрока,<br>чтобы написать ему!</div>';
+                return;
+            }
+
+            users.forEach(u => {
+                const div = document.createElement('div');
+                div.style.cssText = 'background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s;';
+                div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
+                div.onmouseout = () => div.style.background = 'rgba(0,0,0,0.5)';
+                div.onclick = () => openChatDialog(u.id, u.username, u.avatar_url || 'https://via.placeholder.com/40');
+
+                const statusColor = u.is_online ? '#00ff00' : '#888';
+                div.innerHTML = `
+                    <div style="position: relative;">
+                        <img src="${u.avatar_url || 'https://via.placeholder.com/40'}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid ${statusColor};">
+                        <div style="position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; border-radius: 50%; background: ${statusColor}; border: 2px solid #000;"></div>
+                    </div>
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0; color: white;">${u.username} <span style="font-size: 0.8em; color: var(--accent);">${u.role === 'admin' ? '(Admin)' : ''}</span></h4>
+                    </div>
+                `;
+                chatContactsList.appendChild(div);
+            });
+        }
+    } catch (e) {
+        chatContactsList.innerHTML = '<div style="color:#ff4d4d;text-align:center;">Ошибка загрузки</div>';
+    }
+}
+
+function openChatDialog(userId, username, avatar) {
+    currentChatUserId = userId;
+    chatCurrentUsername.textContent = username;
+    chatCurrentAvatar.src = avatar;
+
+    chatListView.classList.add('hidden');
+    chatDialogView.classList.remove('hidden');
+
+    chatInputText.value = '';
+    uploadedChatImageBase64 = null;
+    chatInputText.disabled = true;
+    btnChatSend.disabled = true;
+
+    loadMessages();
+    startChatPolling();
+}
+
+function stopChatPolling() {
+    if (chatPollInterval) clearInterval(chatPollInterval);
+    chatPollInterval = null;
+    currentChatUserId = null;
+}
+
+function startChatPolling() {
+    stopChatPolling();
+    chatPollInterval = setInterval(loadMessages, 3000);
+}
+
+async function loadMessages() {
+    if (!currentChatUserId) return;
+    try {
+        const res = await fetch(`${API_URL}/messages/${currentChatUserId}`, {
+            headers: { 'Authorization': `Bearer ${gameState.token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+
+            isCurrentChatBlocked = data.iBlockedThem || data.theyBlockedMe;
+            btnChatBlockUser.textContent = data.iBlockedThem ? 'Разблокировать' : '🚫 В ЧС';
+            btnChatBlockUser.style.background = data.iBlockedThem ? 'var(--accent)' : '#ff4d4d';
+
+            if (isCurrentChatBlocked) {
+                chatInputText.disabled = true;
+                btnChatSend.disabled = true;
+                chatInputText.placeholder = data.iBlockedThem ? 'Вы заблокировали пользователя.' : 'Пользователь закрыл личные сообщения.';
+            } else {
+                chatInputText.disabled = false;
+                btnChatSend.disabled = false;
+                chatInputText.placeholder = 'Напишите сообщение...';
+            }
+
+            renderMessages(data.messages);
+        }
+    } catch (e) {
+        console.error('Messages error', e);
+    }
+}
+
+function renderMessages(msgs) {
+    chatMessagesArea.innerHTML = '';
+    if (msgs.length === 0) {
+        chatMessagesArea.innerHTML = '<div style="text-align:center; color: gray; margin-top: 20px;">Нет сообщений. Напишите первым!</div>';
+        return;
+    }
+
+    msgs.forEach(m => {
+        const isMe = m.sender_id !== currentChatUserId;
+        const div = document.createElement('div');
+        div.style.cssText = `max-width: 80%; padding: 10px 15px; border-radius: 15px; margin-bottom: 5px; clear: both; word-break: break-word; float: ${isMe ? 'right' : 'left'}; background: ${isMe ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}; color: ${isMe ? 'black' : 'white'}; border-bottom-${isMe ? 'right' : 'left'}-radius: 0;`;
+
+        if (m.image_url) {
+            div.innerHTML += `<img src="${m.image_url}" style="max-width: 100%; border-radius: 10px; margin-bottom: 5px; cursor: pointer;" onclick="window.open('${m.image_url}')">`;
+        }
+        if (m.text) {
+            div.innerHTML += `<div>${m.text}</div>`;
+        }
+        chatMessagesArea.appendChild(div);
+    });
+
+    chatMessagesArea.scrollTop = chatMessagesArea.scrollHeight;
+}
+
+btnBackToChats.addEventListener('click', () => {
+    stopChatPolling();
+    loadChatContacts();
+});
+
+if (chatImageUpload) {
+    chatImageUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Файл слишком большой! Макс 5МБ');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            uploadedChatImageBase64 = event.target.result;
+            chatInputText.placeholder = 'Картинка прикреплена! Добавьте текст...';
+            chatInputText.focus();
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+if (btnChatSend) {
+    btnChatSend.addEventListener('click', async () => {
+        if (isCurrentChatBlocked) return;
+        const text = chatInputText.value.trim();
+        if (!text && !uploadedChatImageBase64) return;
+
+        chatInputText.disabled = true;
+        btnChatSend.disabled = true;
+
+        try {
+            const res = await fetch(`${API_URL}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${gameState.token}`
+                },
+                body: JSON.stringify({
+                    receiver_id: currentChatUserId,
+                    text: text,
+                    image_url: uploadedChatImageBase64
+                })
+            });
+
+            if (res.ok) {
+                chatInputText.value = '';
+                uploadedChatImageBase64 = null;
+                chatInputText.placeholder = 'Напишите сообщение...';
+                loadMessages();
+            } else if (res.status === 403) {
+                alert('Пользователь закрыл личные сообщения.');
+                loadMessages();
+            }
+        } catch (e) {
+            alert('Ошибка отправки');
+        }
+
+        chatInputText.disabled = false;
+        btnChatSend.disabled = false;
+        chatInputText.focus();
+    });
+}
+
+if (btnChatBlockUser) {
+    btnChatBlockUser.addEventListener('click', async () => {
+        if (!currentChatUserId) return;
+        try {
+            const res = await fetch(`${API_URL}/users/${currentChatUserId}/block`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${gameState.token}` }
+            });
+            if (res.ok) {
+                loadMessages();
+            }
+        } catch (e) { }
+    });
+}
+
+if (chatInputText) {
+    chatInputText.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') btnChatSend.click();
+    });
 }

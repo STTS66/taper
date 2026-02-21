@@ -143,6 +143,59 @@
                 </div>
             </div>
         </main>
+        </main>
+
+        <!-- Chat Tab -->
+        <main id="tab-chat" class="tab-content hidden glass"
+            style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+
+            <!-- Chat List View -->
+            <div id="chat-list-view" style="flex: 1; overflow-y: auto;">
+                <h2 style="margin-bottom: 20px;">💬 Сообщения</h2>
+                <div id="chat-contacts-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Chat Dialog View (Hidden initially) -->
+            <div id="chat-dialog-view" class="hidden"
+                style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <!-- Dialog Header -->
+                <div
+                    style="display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px;">
+                    <button id="btn-back-to-chats" class="btn secondary"
+                        style="padding: 5px 15px; font-size: 1rem;">🔙</button>
+                    <img id="chat-current-avatar" src="https://via.placeholder.com/40"
+                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    <h3 id="chat-current-username" style="flex: 1; margin: 0;">Username</h3>
+                    <button id="btn-chat-block-user" class="btn"
+                        style="background: #ff4d4d; color: white; padding: 5px 10px; font-size: 0.8rem;">🚫 В
+                        ЧС</button>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="chat-messages-area"
+                    style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; margin-bottom: 15px;">
+                    <!-- Filled by JS -->
+                </div>
+
+                <!-- Input Area -->
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: auto;">
+                    <label for="chat-image-upload" class="btn secondary"
+                        style="padding: 10px 15px; cursor: pointer; flex-shrink: 0; margin: 0; display: flex; justify-content: center; align-items: center;">
+                        📸
+                    </label>
+                    <input type="file" id="chat-image-upload" accept="image/*" style="display: none;">
+
+                    <input type="text" id="chat-input-text" placeholder="Напишите сообщение..."
+                        style="flex: 1; margin: 0;">
+
+                    <button id="btn-chat-send" class="btn primary"
+                        style="padding: 10px 20px; flex-shrink: 0;">📤</button>
+                </div>
+            </div>
+
+        </main>
 
         <!-- Profile Tab -->
         <main id="tab-profile" class="tab-content hidden glass">
@@ -193,6 +246,10 @@
             <button class="nav-btn" data-tab="tab-top">
                 <span class="icon">🏆</span>
                 <span class="label">Топ</span>
+            </button>
+            <button class="nav-btn" data-tab="tab-chat">
+                <span class="icon">💬</span>
+                <span class="label">Чат</span>
             </button>
             <button class="nav-btn" data-tab="tab-profile">
                 <span class="icon">👤</span>
