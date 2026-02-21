@@ -518,7 +518,11 @@ function getUpgradePrice() {
 
 function getRebirthPrice(currentRebirths) {
     if (currentRebirths === undefined) currentRebirths = gameState.rebirths;
-    return Math.floor(10000 * Math.pow(1.5, currentRebirths));
+    const price = 10000 * Math.pow(1.5, currentRebirths);
+    if (!isFinite(price) || price > 1e300) {
+        return 1e300; // Cap it so it doesn't become "Infinity"
+    }
+    return Math.floor(price);
 }
 
 function updateUI() {
