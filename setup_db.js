@@ -18,6 +18,34 @@ async function setup() {
         `);
         console.log('Table users ensured.');
 
+        // Create Quests table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS quests (
+                id SERIAL PRIMARY KEY,
+                string_id VARCHAR(50) UNIQUE NOT NULL,
+                title VARCHAR(100) NOT NULL,
+                description TEXT NOT NULL,
+                condition_type VARCHAR(50) NOT NULL,
+                condition_value BIGINT NOT NULL,
+                reward_amount BIGINT NOT NULL
+            );
+        `);
+        console.log("Quests table verified.");
+
+        // Seed default quests if empty
+        const countRes = await db.query('SELECT COUNT(*) FROM quests');
+        if (parseInt(countRes.rows[0].count) === 0) {
+            await db.query(`
+                INSERT INTO quests (string_id, title, description, condition_type, condition_value, reward_amount) VALUES
+                ('first_100', '🚀 Первый шаг', 'Накопить 100 монет (Награда: +50 🪙)', 'balance', 100, 50),
+                ('power_5', '💪 Силач', 'Достигнуть силы клика 5 (Награда: +500 🪙)', 'click_power', 5, 500),
+                ('rich_10k', '💰 Магнат', 'Накопить 10,000 монет (Награда: +10 Силы клика)', 'balance', 10000, 10),
+                ('millionaire', '🏆 Миллионер', 'Накопить 1,000,000 монет (Награда: +500,000 🪙)', 'balance', 1000000, 500000)
+                ON CONFLICT (string_id) DO NOTHING;
+            `);
+            console.log("Default quests seeded.");
+        }
+
         const adminUser = 'admin';
         const adminPass = 'Adm!n_T@pper$2026_UltraStrong';
 

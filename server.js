@@ -121,8 +121,54 @@ app.post('/api/save', authenticateToken, async (req, res) => {
     }
 });
 
-app.use((req, res) => {
+// Leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT username, balance, click_power FROM users ORDER BY balance DESC LIMIT 50'
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Leaderboard error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Get Quests
+app.get('/api/quests', authenticateToken, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM quests ORDER BY id ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Quests error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin Create Quest
+app.post('/api/admin/quests', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.username !== 'admin') {
+            return res.status(403).json({ error: 'Access denied. Admins only.' });
+        }
+
+        const { title, description, condition_type, condition_value, reward_amount } = req.body;
+        const string_id = 'quest_' + Date.now();
+
+        await db.query(
+            'INSERT INTO quests (string_id, title, description, condition_type, condition_value, reward_amount) VALUES ($1, $2, $3, $4, $5, $6)',
+            [string_id, title, description, condition_type, condition_value, reward_amount]
+        );
+
+        res.json({ success: true, string_id });
+    } catch (err) {
+        console.error('Admin create quest error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 // Admin Stats

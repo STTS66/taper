@@ -66,19 +66,46 @@
             </div>
         </main>
 
+        <!-- Leaderboard (Top) Tab -->
+        <main id="tab-top" class="tab-content hidden glass">
+            <h2>🏆 Топ Игроков</h2>
+            <div id="leaderboard-list" class="rewards-container"
+                style="max-height: 50vh; overflow-y: auto; margin-top: 20px;">
+                <!-- Filled via JS -->
+            </div>
+        </main>
+
         <!-- Admin Tab -->
         <main id="tab-admin" class="tab-content hidden glass">
             <h2>🛡️ Админ Панель</h2>
+            <!-- Admin Quests Form -->
+            <div
+                style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; text-align: left; margin-top: 20px;">
+                <h3 style="margin-bottom: 10px; color: var(--accent);">Добавить квест</h3>
+                <input type="text" id="admin-quest-title" placeholder="Название (напр. 💎 Богач)"
+                    style="margin-bottom: 10px;">
+                <input type="text" id="admin-quest-desc" placeholder="Описание (напр. Накопить 5000 🪙)"
+                    style="margin-bottom: 10px;">
+                <select id="admin-quest-type"
+                    style="width: 100%; padding: 15px; border-radius: 10px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); margin-bottom: 10px; outline: none;">
+                    <option value="balance">Условие: Монеты (Баланс)</option>
+                    <option value="click_power">Условие: Сила клика</option>
+                </select>
+                <input type="number" id="admin-quest-goal" placeholder="Сколько нужно накопить?"
+                    style="margin-bottom: 10px;">
+                <input type="number" id="admin-quest-reward" placeholder="Награда (монет)" style="margin-bottom: 15px;">
+                <p id="admin-quest-msg" style="font-size: 0.9rem; margin-bottom: 10px;"></p>
+                <button id="btn-add-quest" class="btn primary" style="width: 100%;">➕ Создать квест</button>
+            </div>
+
             <div style="text-align: center; margin-top: 30px;">
                 <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 10px;">Всего зарегистрировано в
                     игре:</p>
                 <div style="font-size: 3rem; font-weight: bold; color: var(--accent); text-shadow: 0 0 15px rgba(0, 242, 254, 0.5);"
                     id="admin-user-count">...</div>
                 <p style="margin-top: 5px;">игроков</p>
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button id="btn-refresh-admin" class="btn primary" style="padding: 10px 20px; font-size: 0.9rem;">🔄
-                    Обновить</button>
+                <button id="btn-refresh-admin" class="btn secondary" style="margin-top: 15px;">🔄 Обновить
+                    статистику</button>
             </div>
         </main>
 
@@ -91,6 +118,10 @@
             <button class="nav-btn" data-tab="tab-rewards">
                 <span class="icon">🎁</span>
                 <span class="label">Награды</span>
+            </button>
+            <button class="nav-btn" data-tab="tab-top">
+                <span class="icon">🏆</span>
+                <span class="label">Топ</span>
             </button>
             <button class="nav-btn hidden" id="nav-btn-admin" data-tab="tab-admin">
                 <span class="icon">🛡️</span>
