@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Tapper Premium</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="overlay">
+        <div class="auth-box glass">
+            <h2>Вход / Регистрация</h2>
+            <p id="auth-error" class="error-msg"></p>
+            <input type="text" id="username" placeholder="Имя пользователя" autocomplete="off">
+            <input type="password" id="password" placeholder="Пароль">
+            <div class="auth-buttons">
+                <button id="btn-play" class="btn primary">Играть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game UI -->
+    <div id="game-ui" class="hidden">
+        <header class="glass">
+            <div class="user-info">
+                <span id="player-name">Player</span>
+                <button id="btn-logout" class="btn-small">Выйти</button>
+            </div>
+            <div class="balance-display">
+                <span class="currency">🪙</span>
+                <span id="balance">0</span>
+            </div>
+            <div class="power-display">
+                Сила клика: <span id="click-power">1</span>
+            </div>
+        </header>
+
+        <!-- Tap & Shop Tab -->
+        <main id="tab-game" class="tab-content active">
+            <div id="tap-target" class="coin">
+                <div class="coin-inner"></div>
+            </div>
+            <!-- Floating text container -->
+            <div id="floating-texts"></div>
+
+            <aside class="shop glass">
+                <h3>Магазин прокачки</h3>
+                <div class="upgrade-item" id="upgrade-power">
+                    <div class="upgrade-info">
+                        <h4>+1 к Силе клика</h4>
+                        <p>Цена: <span id="upgrade-price">10</span> 🪙</p>
+                    </div>
+                    <button class="btn buy-btn">Купить</button>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Rewards Tab -->
+        <main id="tab-rewards" class="tab-content hidden glass">
+            <h2>🎁 Награды</h2>
+            <div id="rewards-list" class="rewards-container">
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav glass">
+            <button class="nav-btn active" data-tab="tab-game">
+                <span class="icon">🕹️</span>
+                <span class="label">Игра</span>
+            </button>
+            <button class="nav-btn" data-tab="tab-rewards">
+                <span class="icon">🎁</span>
+                <span class="label">Награды</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
