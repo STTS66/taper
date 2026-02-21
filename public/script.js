@@ -115,19 +115,6 @@ async function handleAuth() {
 
 btnPlay.addEventListener('click', handleAuth);
 
-const btnLogout = document.getElementById('btn-logout');
-if (btnLogout) {
-    btnLogout.addEventListener('click', () => {
-        localStorage.removeItem('tapper_token');
-        gameState.token = null;
-        saveProgress();
-        gameUI.classList.add('hidden');
-        authOverlay.classList.remove('hidden');
-        usernameInput.value = '';
-        passwordInput.value = '';
-    });
-}
-
 // ---------------- PROFILE LOGIC ----------------
 const profileUsernameEl = document.getElementById('profile-username');
 const profileAvatarUploadEl = document.getElementById('profile-avatar-upload');
