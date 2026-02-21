@@ -52,7 +52,7 @@ app.post('/api/register', async (req, res) => {
             const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
 
             const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
-            res.json({ token, user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
+            res.json({ token, user: { id: user.id, username: user.username, role: user.role || 'user', balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
         } catch (dbErr) {
             if (dbErr.code === '23505') { // unique violation
                 return res.status(400).json({ error: 'Username already exists' });
@@ -79,7 +79,7 @@ app.post('/api/login', async (req, res) => {
 
         const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
         const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET);
-        res.json({ token, user: { username: user.username, role: user.role, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
+        res.json({ token, user: { id: user.id, username: user.username, role: user.role, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -95,7 +95,7 @@ app.get('/api/me', authenticateToken, async (req, res) => {
         const user = result.rows[0];
         const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
 
-        res.json({ user: { username: user.username, role: user.role, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
+        res.json({ user: { id: req.user.id, username: user.username, role: user.role, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
