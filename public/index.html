@@ -66,6 +66,22 @@
             </div>
         </main>
 
+        <!-- Admin Tab -->
+        <main id="tab-admin" class="tab-content hidden glass">
+            <h2>🛡️ Админ Панель</h2>
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 10px;">Всего зарегистрировано в
+                    игре:</p>
+                <div style="font-size: 3rem; font-weight: bold; color: var(--accent); text-shadow: 0 0 15px rgba(0, 242, 254, 0.5);"
+                    id="admin-user-count">...</div>
+                <p style="margin-top: 5px;">игроков</p>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="btn-refresh-admin" class="btn primary" style="padding: 10px 20px; font-size: 0.9rem;">🔄
+                    Обновить</button>
+            </div>
+        </main>
+
         <!-- Bottom Navigation -->
         <nav class="bottom-nav glass">
             <button class="nav-btn active" data-tab="tab-game">
@@ -75,6 +91,10 @@
             <button class="nav-btn" data-tab="tab-rewards">
                 <span class="icon">🎁</span>
                 <span class="label">Награды</span>
+            </button>
+            <button class="nav-btn hidden" id="nav-btn-admin" data-tab="tab-admin">
+                <span class="icon">🛡️</span>
+                <span class="label">Админка</span>
             </button>
         </nav>
     </div>

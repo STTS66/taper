@@ -118,7 +118,44 @@ btnLogout.addEventListener('click', () => {
 function showGame() {
     authOverlay.classList.add('hidden');
     gameUI.classList.remove('hidden');
+
+    // Check for admin
+    const navBtnAdmin = document.getElementById('nav-btn-admin');
+    if (gameState.username === 'admin') {
+        navBtnAdmin.classList.remove('hidden');
+        fetchAdminStats();
+    } else {
+        navBtnAdmin.classList.add('hidden');
+    }
+
     updateUI();
+}
+
+// -------------- ADMIN LOGIC --------------
+const adminUserCountEl = document.getElementById('admin-user-count');
+const btnRefreshAdmin = document.getElementById('btn-refresh-admin');
+
+async function fetchAdminStats() {
+    if (!gameState.token || gameState.username !== 'admin') return;
+
+    adminUserCountEl.textContent = '...';
+    try {
+        const res = await fetch(`${API_URL}/admin/stats`, {
+            headers: { 'Authorization': `Bearer ${gameState.token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            adminUserCountEl.textContent = data.totalUsers;
+        } else {
+            console.error('Failed to load admin stats');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+if (btnRefreshAdmin) {
+    btnRefreshAdmin.addEventListener('click', fetchAdminStats);
 }
 
 // Game Logic
