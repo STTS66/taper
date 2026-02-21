@@ -45,6 +45,7 @@ async function fetchProfile() {
         if (res.ok) {
             const data = await res.json();
             gameState.username = data.user.username;
+            gameState.role = data.user.role || 'user';
             gameState.balance = data.user.balance;
             gameState.clickPower = data.user.click_power;
             gameState.rebirths = data.user.rebirths || 0;
