@@ -435,6 +435,23 @@ app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// Admin Stats
+app.get('/api/admin/stats', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.username !== 'admin') {
+            return res.status(403).json({ error: 'Access denied. Admins only.' });
+        }
+
+        const result = await db.query('SELECT COUNT(*) FROM users');
+        const userCount = result.rows[0].count;
+
+        res.json({ totalUsers: parseInt(userCount) });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
