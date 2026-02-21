@@ -26,7 +26,8 @@ let gameState = {
     rebirths: 0,
     claimedRewards: [],
     token: null,
-    username: ''
+    username: '',
+    role: 'user'
 };
 
 // Check for existing token
@@ -95,6 +96,7 @@ async function handleAuth() {
         if (res.ok) {
             gameState.token = data.token;
             gameState.username = data.user.username;
+            gameState.role = data.user.role || 'user';
             gameState.balance = data.user.balance;
             gameState.clickPower = data.user.click_power;
             gameState.rebirths = data.user.rebirths || 0;
@@ -290,7 +292,7 @@ function showGame() {
 
     // Check for admin
     const navBtnAdmin = document.getElementById('nav-btn-admin');
-    if (gameState.username === 'admin') {
+    if (gameState.role === 'admin') {
         navBtnAdmin.classList.remove('hidden');
         fetchAdminStats();
     } else {

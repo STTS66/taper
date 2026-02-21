@@ -86,8 +86,8 @@ app.post('/api/login', async (req, res) => {
         if (!validPassword) return res.status(400).json({ error: 'Invalid password' });
 
         const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
-        const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
-        res.json({ token, user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
+        const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET);
+        res.json({ token, user: { username: user.username, role: user.role, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -97,13 +97,13 @@ app.post('/api/login', async (req, res) => {
 // Get profile
 app.get('/api/me', authenticateToken, async (req, res) => {
     try {
-        const result = await db.query('SELECT username, balance, click_power, claimed_rewards, rebirths, avatar_url FROM users WHERE id = $1', [req.user.id]);
+        const result = await db.query('SELECT username, role, balance, click_power, claimed_rewards, rebirths, avatar_url FROM users WHERE id = $1', [req.user.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
         const user = result.rows[0];
         const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
 
-        res.json({ user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
+        res.json({ user: { username: user.username, role: user.role, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -188,7 +188,7 @@ app.put('/api/profile/password', authenticateToken, async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const result = await db.query(
-            "SELECT username, balance, click_power, rebirths FROM users WHERE username != 'admin' ORDER BY balance DESC LIMIT 50"
+            "SELECT username, balance, click_power, rebirths FROM users WHERE role != 'admin' ORDER BY balance DESC LIMIT 50"
         );
         res.json(result.rows);
     } catch (err) {
@@ -212,7 +212,7 @@ app.get('/api/quests', authenticateToken, async (req, res) => {
 // Admin Create Quest
 app.post('/api/admin/quests', authenticateToken, async (req, res) => {
     try {
-        if (req.user.username !== 'admin') {
+        if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied. Admins only.' });
         }
 
@@ -234,7 +234,7 @@ app.post('/api/admin/quests', authenticateToken, async (req, res) => {
 // Admin Stats
 app.get('/api/admin/stats', authenticateToken, async (req, res) => {
     try {
-        if (req.user.username !== 'admin') {
+        if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied. Admins only.' });
         }
 
@@ -250,7 +250,7 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
 
 app.delete('/api/admin/quests/:id', authenticateToken, async (req, res) => {
     try {
-        if (req.user.username !== 'admin') {
+        if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied.' });
         }
         const { id } = req.params;
@@ -264,7 +264,7 @@ app.delete('/api/admin/quests/:id', authenticateToken, async (req, res) => {
 
 app.put('/api/admin/quests/:id', authenticateToken, async (req, res) => {
     try {
-        if (req.user.username !== 'admin') {
+        if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied.' });
         }
         const { id } = req.params;
@@ -282,7 +282,7 @@ app.put('/api/admin/quests/:id', authenticateToken, async (req, res) => {
 
 app.get('/api/admin/users', authenticateToken, async (req, res) => {
     try {
-        if (req.user.username !== 'admin') {
+        if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied.' });
         }
         const result = await db.query('SELECT id, username, balance, click_power, rebirths, role FROM users ORDER BY id DESC');
@@ -295,7 +295,7 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
 
 app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
     try {
-        if (req.user.username !== 'admin') {
+        if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied.' });
         }
         const { id } = req.params;
