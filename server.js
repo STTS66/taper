@@ -125,7 +125,7 @@ app.post('/api/save', authenticateToken, async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT username, balance, click_power FROM users ORDER BY balance DESC LIMIT 50'
+            "SELECT username, balance, click_power FROM users WHERE username != 'admin' ORDER BY balance DESC LIMIT 50"
         );
         res.json(result.rows);
     } catch (err) {
