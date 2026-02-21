@@ -27,6 +27,7 @@ let gameState = {
     claimedRewards: [],
     token: null,
     username: '',
+    userId: null,
     role: 'user'
 };
 
@@ -51,6 +52,7 @@ async function fetchProfile() {
         if (res.ok) {
             const data = await res.json();
             gameState.username = data.user.username;
+            gameState.userId = data.user.id;
             gameState.role = data.user.role || 'user';
             gameState.balance = data.user.balance;
             gameState.clickPower = data.user.click_power;
@@ -105,6 +107,7 @@ async function handleAuth() {
         if (res.ok) {
             gameState.token = data.token;
             gameState.username = data.user.username;
+            gameState.userId = data.user.id;
             gameState.role = data.user.role || 'user';
             gameState.balance = data.user.balance;
             gameState.clickPower = data.user.click_power;
@@ -1009,7 +1012,7 @@ function renderMessages(msgs) {
     }
 
     msgs.forEach(m => {
-        const isMe = m.sender_id !== currentChatUserId;
+        const isMe = m.sender_id === gameState.userId;
         const div = document.createElement('div');
         div.style.cssText = `max-width: 80%; padding: 10px 15px; border-radius: 15px; margin-bottom: 5px; clear: both; word-break: break-word; float: ${isMe ? 'right' : 'left'}; background: ${isMe ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}; color: ${isMe ? 'black' : 'white'}; border-bottom-${isMe ? 'right' : 'left'}-radius: 0;`;
 
