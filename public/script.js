@@ -620,6 +620,14 @@ function showFloatingText(x, y, text) {
     setTimeout(() => { el.remove(); }, 1000);
 }
 
+// ---- LOGOUT LOGIC ----
+if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+        localStorage.removeItem('tapper_token');
+        location.reload();
+    });
+}
+
 btnBuyUpgrade.addEventListener('click', () => {
     const price = getUpgradePrice();
     if (gameState.balance >= price) {
