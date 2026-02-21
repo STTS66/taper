@@ -142,6 +142,7 @@ function updateUI() {
 }
 
 tapTarget.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevents modern browsers from firing simulated mousedown
     Array.from(e.touches).forEach(t => handleTap(t.clientX, t.clientY));
 });
 
