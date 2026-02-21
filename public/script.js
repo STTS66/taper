@@ -516,6 +516,11 @@ function getUpgradePrice() {
     return Math.floor(10 * Math.pow(1.2, gameState.clickPower - 1));
 }
 
+function getRebirthPrice(currentRebirths) {
+    if (currentRebirths === undefined) currentRebirths = gameState.rebirths;
+    return Math.floor(10000 * Math.pow(1.5, currentRebirths));
+}
+
 function updateUI() {
     playerNameEl.textContent = gameState.username;
     balanceEl.textContent = gameState.balance.toLocaleString('ru-RU');
@@ -523,6 +528,13 @@ function updateUI() {
     upgradePriceEl.textContent = getUpgradePrice().toLocaleString('ru-RU');
     rebirthCountEl.textContent = gameState.rebirths.toLocaleString('ru-RU');
     rebirthMultiplierEl.textContent = (1 + gameState.rebirths).toLocaleString('ru-RU');
+
+    // Update rebirth UI price
+    const currentRebirthPrice = getRebirthPrice();
+    const rebirthPriceDisplay = document.querySelector('#upgrade-rebirth p');
+    if (rebirthPriceDisplay) {
+        rebirthPriceDisplay.innerHTML = `Цена: ${currentRebirthPrice.toLocaleString('ru-RU')} 🪙 за 1 шт.`;
+    }
 
     if (gameState.balance < getUpgradePrice()) {
         btnBuyUpgrade.style.opacity = '0.5';
@@ -532,7 +544,7 @@ function updateUI() {
         btnBuyUpgrade.style.cursor = 'pointer';
     }
 
-    if (gameState.balance < 10000) {
+    if (gameState.balance < currentRebirthPrice) {
         btnBuyRebirth.style.opacity = '0.5';
         btnBuyRebirth.style.cursor = 'not-allowed';
     } else {
@@ -580,10 +592,19 @@ btnBuyUpgrade.addEventListener('click', () => {
 });
 
 btnBuyRebirth.addEventListener('click', () => {
-    const rebirthsToBuy = Math.floor(gameState.balance / 10000);
-    if (rebirthsToBuy > 0) {
-        gameState.balance -= rebirthsToBuy * 10000;
-        gameState.rebirths += rebirthsToBuy;
+    let price = getRebirthPrice(gameState.rebirths);
+    let boughtAny = false;
+
+    // Loop to buy maximum possible rebirths
+    while (gameState.balance >= price) {
+        gameState.balance -= price;
+        gameState.rebirths += 1;
+        boughtAny = true;
+        // recalculate price for the next one
+        price = getRebirthPrice(gameState.rebirths);
+    }
+
+    if (boughtAny) {
         updateUI();
         scheduleSave();
     }
