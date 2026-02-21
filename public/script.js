@@ -31,11 +31,13 @@ let gameState = {
 };
 
 // Check for existing token
+/*
 const savedToken = localStorage.getItem('tapper_token');
 if (savedToken) {
     gameState.token = savedToken;
     fetchProfile();
 }
+*/
 
 async function fetchProfile() {
     try {
