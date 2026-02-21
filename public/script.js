@@ -48,6 +48,7 @@ async function fetchProfile() {
             gameState.clickPower = data.user.click_power;
             gameState.rebirths = data.user.rebirths || 0;
             gameState.claimedRewards = data.user.claimed_rewards || [];
+            gameState.avatarUrl = data.user.avatar_url || '';
             showGame();
         } else {
             localStorage.removeItem('tapper_token');
