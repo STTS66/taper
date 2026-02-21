@@ -16,6 +16,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 // DB connection validation
 db.query('SELECT NOW()').then(() => console.log('Connected to PostgreSQL')).catch(console.error);
 
+// Keep-Alive Ping (prevents Render from sleeping)
+app.get('/api/ping', (req, res) => {
+    res.send('pong');
+});
+
+if (process.env.RENDER_EXTERNAL_HOSTNAME) {
+    const https = require('https');
+    setInterval(() => {
+        https.get(`https://${process.env.RENDER_EXTERNAL_HOSTNAME}/api/ping`);
+    }, 14 * 60 * 1000); // Ping every 14 minutes
+}
+
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
