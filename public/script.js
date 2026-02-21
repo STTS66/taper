@@ -14,13 +14,16 @@ const clickPowerEl = document.getElementById('click-power');
 
 const tapTarget = document.getElementById('tap-target');
 const floatingTexts = document.getElementById('floating-texts');
-const btnBuyUpgrade = document.querySelector('.buy-btn');
+const btnBuyUpgrade = document.getElementById('btn-buy-upgrade');
 const upgradePriceEl = document.getElementById('upgrade-price');
+const rebirthCountEl = document.getElementById('rebirth-count');
+const rebirthMultiplierEl = document.getElementById('rebirth-multiplier');
+const btnBuyRebirth = document.getElementById('btn-buy-rebirth');
 
-// Game State
 let gameState = {
     balance: 0,
     clickPower: 1,
+    rebirths: 0,
     claimedRewards: [],
     token: null,
     username: ''
@@ -43,6 +46,7 @@ async function fetchProfile() {
             gameState.username = data.user.username;
             gameState.balance = data.user.balance;
             gameState.clickPower = data.user.click_power;
+            gameState.rebirths = data.user.rebirths || 0;
             gameState.claimedRewards = data.user.claimed_rewards || [];
             showGame();
         } else {
@@ -92,6 +96,7 @@ async function handleAuth() {
             gameState.username = data.user.username;
             gameState.balance = data.user.balance;
             gameState.clickPower = data.user.click_power;
+            gameState.rebirths = data.user.rebirths || 0;
             gameState.claimedRewards = data.user.claimed_rewards || [];
             gameState.avatarUrl = data.user.avatar_url || '';
             localStorage.setItem('tapper_token', data.token);
@@ -329,16 +334,17 @@ async function fetchAdminStats() {
                 div.style.background = 'rgba(255,255,255,0.1)';
                 div.style.borderRadius = '5px';
                 div.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <div>
                             <strong style="color:var(--accent)">${u.username}</strong>
                             <span style="color: gray; font-size: 0.8em; margin-left:10px;">ID: ${u.id}</span>
                         </div>
                         <div style="text-align: right;">
                             <div>🪙 ${parseInt(u.balance).toLocaleString('ru-RU')}</div>
-                            <div style="font-size: 0.8em; color: gray;">💪 ${parseInt(u.click_power).toLocaleString('ru-RU')}</div>
+                            <div style="font-size: 0.8em; color: gray;">💪 ${parseInt(u.click_power).toLocaleString('ru-RU')} | 🌟 ${u.rebirths || 0}</div>
                         </div>
                     </div>
+                    <button class="btn primary" style="width: 100%; padding: 5px; font-size: 0.8em;" onclick="editAdminUser(${u.id}, '${u.username}', ${u.balance}, ${u.click_power})">⚙️ Изменить</button>
                 `;
                 usersListEl.appendChild(div);
             });
@@ -423,6 +429,35 @@ window.editAdminQuest = async function (questId) {
     } catch (e) { console.error(e); }
 }
 
+window.editAdminUser = async function (userId, username, currentBalance, currentPower) {
+    const newBalanceStr = prompt(`Новый баланс для ${username}:`, currentBalance);
+    if (newBalanceStr === null || isNaN(parseInt(newBalanceStr))) return;
+
+    const newPowerStr = prompt(`Новая сила клика для ${username}:`, currentPower);
+    if (newPowerStr === null || isNaN(parseInt(newPowerStr))) return;
+
+    try {
+        const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${gameState.token}`
+            },
+            body: JSON.stringify({
+                balance: parseInt(newBalanceStr),
+                click_power: parseInt(newPowerStr)
+            })
+        });
+
+        if (res.ok) {
+            fetchAdminStats();
+            alert(`Данные ${username} изменены.`);
+        } else {
+            alert('Ошибка сервера');
+        }
+    } catch (e) { console.error(e); }
+}
+
 async function handleAddAdminQuest() {
     const title = document.getElementById('admin-quest-title').value.trim();
     const description = document.getElementById('admin-quest-desc').value.trim();
@@ -486,6 +521,8 @@ function updateUI() {
     balanceEl.textContent = gameState.balance.toLocaleString('ru-RU');
     clickPowerEl.textContent = gameState.clickPower.toLocaleString('ru-RU');
     upgradePriceEl.textContent = getUpgradePrice().toLocaleString('ru-RU');
+    rebirthCountEl.textContent = gameState.rebirths.toLocaleString('ru-RU');
+    rebirthMultiplierEl.textContent = (1 + gameState.rebirths).toLocaleString('ru-RU');
 
     if (gameState.balance < getUpgradePrice()) {
         btnBuyUpgrade.style.opacity = '0.5';
@@ -493,6 +530,14 @@ function updateUI() {
     } else {
         btnBuyUpgrade.style.opacity = '1';
         btnBuyUpgrade.style.cursor = 'pointer';
+    }
+
+    if (gameState.balance < 10000) {
+        btnBuyRebirth.style.opacity = '0.5';
+        btnBuyRebirth.style.cursor = 'not-allowed';
+    } else {
+        btnBuyRebirth.style.opacity = '1';
+        btnBuyRebirth.style.cursor = 'pointer';
     }
 }
 
@@ -506,9 +551,10 @@ tapTarget.addEventListener('mousedown', (e) => {
 });
 
 function handleTap(x, y) {
-    gameState.balance += gameState.clickPower;
+    const earned = gameState.clickPower * (1 + gameState.rebirths);
+    gameState.balance += earned;
     updateUI();
-    showFloatingText(x, y, `+${gameState.clickPower}`);
+    showFloatingText(x, y, `+${earned}`);
     scheduleSave();
 }
 
@@ -533,6 +579,16 @@ btnBuyUpgrade.addEventListener('click', () => {
     }
 });
 
+btnBuyRebirth.addEventListener('click', () => {
+    const rebirthsToBuy = Math.floor(gameState.balance / 10000);
+    if (rebirthsToBuy > 0) {
+        gameState.balance -= rebirthsToBuy * 10000;
+        gameState.rebirths += rebirthsToBuy;
+        updateUI();
+        scheduleSave();
+    }
+});
+
 let saveTimeout = null;
 function scheduleSave() {
     if (saveTimeout) clearTimeout(saveTimeout);
@@ -551,6 +607,7 @@ async function saveProgress() {
             body: JSON.stringify({
                 balance: gameState.balance,
                 click_power: gameState.clickPower,
+                rebirths: gameState.rebirths,
                 claimed_rewards: gameState.claimedRewards
             })
         });
@@ -619,7 +676,7 @@ async function renderLeaderboard() {
                         <span style="font-size: 1.5rem; font-weight: bold; width: 30px; text-align: center; color: var(--accent);">${medal}</span>
                         <div>
                             <h4 style="color: ${isMe ? 'var(--accent)' : 'white'};">${player.username} ${isMe ? '(Вы)' : ''}</h4>
-                            <p style="color: var(--text-muted); font-size: 0.85em;">Сила клика: ${parseInt(player.click_power).toLocaleString('ru-RU')}</p>
+                            <p style="color: var(--text-muted); font-size: 0.85em;">💪: ${parseInt(player.click_power).toLocaleString('ru-RU')} | 🌟: ${player.rebirths || 0}</p>
                         </div>
                     </div>
                     <div style="text-align: right; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 8px;">

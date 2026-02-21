@@ -40,7 +40,7 @@ app.post('/api/register', async (req, res) => {
 
         try {
             const result = await db.query(
-                'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, balance, click_power, claimed_rewards',
+                'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, balance, click_power, claimed_rewards, rebirths, avatar_url',
                 [username, hash]
             );
 
@@ -48,7 +48,7 @@ app.post('/api/register', async (req, res) => {
             const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
 
             const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
-            res.json({ token, user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), claimed_rewards } });
+            res.json({ token, user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
         } catch (dbErr) {
             if (dbErr.code === '23505') { // unique violation
                 return res.status(400).json({ error: 'Username already exists' });
@@ -75,7 +75,7 @@ app.post('/api/login', async (req, res) => {
 
         const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
         const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
-        res.json({ token, user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), claimed_rewards } });
+        res.json({ token, user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -85,13 +85,13 @@ app.post('/api/login', async (req, res) => {
 // Get profile
 app.get('/api/me', authenticateToken, async (req, res) => {
     try {
-        const result = await db.query('SELECT username, balance, click_power, claimed_rewards FROM users WHERE id = $1', [req.user.id]);
+        const result = await db.query('SELECT username, balance, click_power, claimed_rewards, rebirths, avatar_url FROM users WHERE id = $1', [req.user.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
         const user = result.rows[0];
         const claimed_rewards = JSON.parse(user.claimed_rewards || '[]');
 
-        res.json({ user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), claimed_rewards } });
+        res.json({ user: { username: user.username, balance: parseInt(user.balance), click_power: parseInt(user.click_power), rebirths: parseInt(user.rebirths || 0), avatar_url: user.avatar_url, claimed_rewards } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -101,15 +101,16 @@ app.get('/api/me', authenticateToken, async (req, res) => {
 // Save progress
 app.post('/api/save', authenticateToken, async (req, res) => {
     try {
-        let { balance, click_power, claimed_rewards } = req.body;
+        let { balance, click_power, claimed_rewards, rebirths } = req.body;
         if (typeof balance !== 'number' || typeof click_power !== 'number') {
             return res.status(400).json({ error: 'Invalid data types' });
         }
+        rebirths = typeof rebirths === 'number' ? rebirths : 0;
 
         const rewardsStr = JSON.stringify(claimed_rewards || []);
         const result = await db.query(
-            'UPDATE users SET balance = $1, click_power = $2, claimed_rewards = $3 WHERE id = $4',
-            [balance, click_power, rewardsStr, req.user.id]
+            'UPDATE users SET balance = $1, click_power = $2, claimed_rewards = $3, rebirths = $4 WHERE id = $5',
+            [balance, click_power, rewardsStr, rebirths, req.user.id]
         );
 
         if (result.rowCount === 0) return res.status(404).json({ error: 'User not found' });
@@ -175,7 +176,7 @@ app.put('/api/profile/password', authenticateToken, async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const result = await db.query(
-            "SELECT username, balance, click_power FROM users WHERE username != 'admin' ORDER BY balance DESC LIMIT 50"
+            "SELECT username, balance, click_power, rebirths FROM users WHERE username != 'admin' ORDER BY balance DESC LIMIT 50"
         );
         res.json(result.rows);
     } catch (err) {
@@ -272,8 +273,26 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
         if (req.user.username !== 'admin') {
             return res.status(403).json({ error: 'Access denied.' });
         }
-        const result = await db.query('SELECT id, username, balance, click_power, role FROM users ORDER BY id DESC');
+        const result = await db.query('SELECT id, username, balance, click_power, rebirths, role FROM users ORDER BY id DESC');
         res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.username !== 'admin') {
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+        const { id } = req.params;
+        const { balance, click_power } = req.body;
+        await db.query(
+            'UPDATE users SET balance = $1, click_power = $2 WHERE id = $3',
+            [balance, click_power, id]
+        );
+        res.json({ success: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
