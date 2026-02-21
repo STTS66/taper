@@ -180,7 +180,7 @@ app.put('/api/profile/password', authenticateToken, async (req, res) => {
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const result = await db.query(
-            "SELECT id, username, balance, click_power, rebirths FROM users WHERE role != 'admin' ORDER BY balance DESC LIMIT 50"
+            "SELECT id, username, avatar_url, balance, click_power, rebirths FROM users WHERE role != 'admin' ORDER BY balance DESC LIMIT 50"
         );
         res.json(result.rows);
     } catch (err) {

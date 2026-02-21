@@ -30,6 +30,12 @@ let gameState = {
     role: 'user'
 };
 
+function getAvatarUrl(url, username) {
+    if (url) return url;
+    const initial = (username || 'U').charAt(0).toUpperCase();
+    return `https://ui-avatars.com/api/?name=${initial}&background=random&color=fff&size=100`;
+}
+
 // Check for existing token
 const savedToken = localStorage.getItem('tapper_token');
 if (savedToken) {
@@ -51,6 +57,8 @@ async function fetchProfile() {
             gameState.rebirths = data.user.rebirths || 0;
             gameState.claimedRewards = data.user.claimed_rewards || [];
             gameState.avatarUrl = data.user.avatar_url || '';
+            headerAvatarEl.src = getAvatarUrl(gameState.avatarUrl, gameState.username);
+            headerAvatarEl.style.display = 'block';
             showGame();
         } else {
             localStorage.removeItem('tapper_token');
@@ -104,6 +112,8 @@ async function handleAuth() {
             gameState.claimedRewards = data.user.claimed_rewards || [];
             gameState.avatarUrl = data.user.avatar_url || '';
             localStorage.setItem('tapper_token', data.token);
+            headerAvatarEl.src = getAvatarUrl(gameState.avatarUrl, gameState.username);
+            headerAvatarEl.style.display = 'block';
             showGame();
         } else {
             authError.textContent = data.error || 'Ошибка';
@@ -182,8 +192,9 @@ function loadProfileUI() {
         headerAvatarEl.src = gameState.avatarUrl;
         headerAvatarEl.style.display = 'block';
     } else {
-        profileAvatarPreviewEl.src = 'https://via.placeholder.com/100';
-        headerAvatarEl.style.display = 'none';
+        profileAvatarPreviewEl.src = getAvatarUrl(null, gameState.username);
+        headerAvatarEl.src = profileAvatarPreviewEl.src;
+        headerAvatarEl.style.display = 'block';
     }
 }
 
@@ -728,7 +739,7 @@ async function renderLeaderboard() {
                     div.onclick = () => {
                         // Switch to chat tab
                         document.querySelector('[data-tab="tab-chat"]').click();
-                        openChatDialog(player.id, player.username, 'https://via.placeholder.com/40');
+                        openChatDialog(player.id, player.username, getAvatarUrl(player.avatar_url, player.username));
                     };
                 }
 
@@ -911,12 +922,13 @@ async function loadChatContacts() {
                 div.style.cssText = 'background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s;';
                 div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
                 div.onmouseout = () => div.style.background = 'rgba(0,0,0,0.5)';
-                div.onclick = () => openChatDialog(u.id, u.username, u.avatar_url || 'https://via.placeholder.com/40');
+                const avatar = getAvatarUrl(u.avatar_url, u.username);
+                div.onclick = () => openChatDialog(u.id, u.username, avatar);
 
                 const statusColor = u.is_online ? '#00ff00' : '#888';
                 div.innerHTML = `
                     <div style="position: relative;">
-                        <img src="${u.avatar_url || 'https://via.placeholder.com/40'}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid ${statusColor};">
+                        <img src="${avatar}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid ${statusColor};">
                         <div style="position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; border-radius: 50%; background: ${statusColor}; border: 2px solid #000;"></div>
                     </div>
                     <div style="flex: 1;">

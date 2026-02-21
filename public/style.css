@@ -304,14 +304,23 @@ header {
     animation: fadeIn 0.3s ease-out;
 }
 
-#tab-rewards {
+#tab-rewards,
+#tab-top,
+#tab-profile {
     padding: 20px;
-    margin: 0 20px 80px 20px;
+    margin: 0 20px 90px 20px;
     /* Leave space for bottom nav */
     overflow-y: auto;
 }
 
-#tab-rewards h2 {
+#tab-chat {
+    margin: 0 20px 90px 20px;
+    padding-top: 20px;
+}
+
+#tab-rewards h2,
+#tab-top h2,
+#tab-profile h2 {
     text-align: center;
     margin-bottom: 20px;
     color: var(--accent);
