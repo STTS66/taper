@@ -121,11 +121,57 @@ if (btnLogout) {
 
 // ---------------- PROFILE LOGIC ----------------
 const profileUsernameEl = document.getElementById('profile-username');
-const profileAvatarUrlEl = document.getElementById('profile-avatar-url');
+const profileAvatarUploadEl = document.getElementById('profile-avatar-upload');
 const profileAvatarPreviewEl = document.getElementById('profile-avatar-preview');
 const headerAvatarEl = document.getElementById('header-avatar');
 const btnSaveProfile = document.getElementById('btn-save-profile');
 const profileMsg = document.getElementById('profile-msg');
+
+let uploadedAvatarBase64 = null;
+
+profileAvatarUploadEl.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        profileMsg.style.color = '#ff4d4d';
+        profileMsg.textContent = 'Пожалуйста, выберите картинку';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_SIZE = 150;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_SIZE) {
+                    height *= MAX_SIZE / width;
+                    width = MAX_SIZE;
+                }
+            } else {
+                if (height > MAX_SIZE) {
+                    width *= MAX_SIZE / height;
+                    height = MAX_SIZE;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            uploadedAvatarBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            profileAvatarPreviewEl.src = uploadedAvatarBase64;
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
 
 const profileOldPassEl = document.getElementById('profile-old-pass');
 const profileNewPassEl = document.getElementById('profile-new-pass');
@@ -133,14 +179,13 @@ const btnChangePassword = document.getElementById('btn-change-password');
 
 function loadProfileUI() {
     profileUsernameEl.value = gameState.username;
+    uploadedAvatarBase64 = null;
 
     if (gameState.avatarUrl) {
-        profileAvatarUrlEl.value = gameState.avatarUrl;
         profileAvatarPreviewEl.src = gameState.avatarUrl;
         headerAvatarEl.src = gameState.avatarUrl;
         headerAvatarEl.style.display = 'block';
     } else {
-        profileAvatarUrlEl.value = '';
         profileAvatarPreviewEl.src = 'https://via.placeholder.com/100';
         headerAvatarEl.style.display = 'none';
     }
@@ -148,7 +193,7 @@ function loadProfileUI() {
 
 btnSaveProfile.addEventListener('click', async () => {
     const newUsername = profileUsernameEl.value.trim();
-    const newAvatarUrl = profileAvatarUrlEl.value.trim();
+    const newAvatarUrl = uploadedAvatarBase64 !== null ? uploadedAvatarBase64 : gameState.avatarUrl;
 
     if (!newUsername) {
         profileMsg.style.color = '#ff4d4d';

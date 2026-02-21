@@ -135,14 +135,18 @@
             <div
                 style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin-top: 20px; text-align: left;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <img id="profile-avatar-preview" src="https://via.placeholder.com/100"
-                        style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); margin-bottom: 10px;">
+                    <label for="profile-avatar-upload" style="cursor: pointer; display: inline-block;">
+                        <img id="profile-avatar-preview" src="https://via.placeholder.com/100"
+                            style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); transition: 0.3s; background: rgba(0,0,0,0.5);"
+                            onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-top: 5px;">📷 Вибрать из галереи
+                        </div>
+                    </label>
+                    <input type="file" id="profile-avatar-upload" accept="image/*" style="display: none;">
                 </div>
 
                 <h3 style="color: var(--accent); margin-bottom: 10px;">Основные данные</h3>
-                <input type="text" id="profile-username" placeholder="Имя пользователя" style="margin-bottom: 10px;">
-                <input type="text" id="profile-avatar-url" placeholder="Ссылка на фото (URL)"
-                    style="margin-bottom: 15px;">
+                <input type="text" id="profile-username" placeholder="Имя пользователя" style="margin-bottom: 15px;">
                 <button id="btn-save-profile" class="btn primary" style="width: 100%; margin-bottom: 20px;">💾 Сохранить
                     профиль</button>
 
