@@ -205,6 +205,51 @@
         </nav>
     </div>
 
+    <!-- Admin Edit User Modal -->
+    <div id="admin-edit-modal" class="hidden"
+        style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 20px;">
+        <div class="glass"
+            style="width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; text-align: left; max-height: 90vh; overflow-y: auto;">
+            <h3 style="color: var(--accent); margin-bottom: 20px; text-align: center;">Редактировать Игрока</h3>
+            <input type="hidden" id="admin-edit-id">
+
+            <label
+                style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block;">Никнейм</label>
+            <input type="text" id="admin-edit-username" style="margin-bottom: 15px;">
+
+            <label style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block;">Баланс
+                (Монеты)</label>
+            <input type="number" id="admin-edit-balance" style="margin-bottom: 15px;">
+
+            <label style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block;">Сила
+                клика</label>
+            <input type="number" id="admin-edit-power" style="margin-bottom: 15px;">
+
+            <label
+                style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block;">Перерождения</label>
+            <input type="number" id="admin-edit-rebirths" style="margin-bottom: 15px;">
+
+            <label style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 5px; display: block;">Роль</label>
+            <select id="admin-edit-role"
+                style="width: 100%; padding: 15px; border-radius: 10px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); margin-bottom: 15px; outline: none;">
+                <option value="user">Игрок (user)</option>
+                <option value="admin">Администратор (admin)</option>
+            </select>
+
+            <label style="color: #ff4d4d; font-size: 0.9em; margin-bottom: 5px; display: block;">Новый Пароль (пусто =
+                не менять)</label>
+            <input type="text" id="admin-edit-password" placeholder="Впишите новый пароль..."
+                style="margin-bottom: 20px;">
+
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-admin-edit-save" class="btn primary" style="flex: 1; padding: 10px;">💾
+                    Сохранить</button>
+                <button onclick="document.getElementById('admin-edit-modal').classList.add('hidden')" class="btn"
+                    style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: white;">✖ Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 

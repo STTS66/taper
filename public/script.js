@@ -347,7 +347,7 @@ async function fetchAdminStats() {
                             <div style="font-size: 0.8em; color: gray;">💪 ${parseInt(u.click_power).toLocaleString('ru-RU')} | 🌟 ${u.rebirths || 0}</div>
                         </div>
                     </div>
-                    <button class="btn primary" style="width: 100%; padding: 5px; font-size: 0.8em;" onclick="editAdminUser(${u.id}, '${u.username}', ${u.balance}, ${u.click_power})">⚙️ Изменить</button>
+                    <button class="btn primary" style="width: 100%; padding: 5px; font-size: 0.8em;" onclick="editAdminUser(${u.id}, '${u.username}', ${u.balance}, ${u.click_power}, ${u.rebirths || 0}, '${u.role}')">⚙️ Изменить</button>
                 `;
                 usersListEl.appendChild(div);
             });
@@ -432,12 +432,39 @@ window.editAdminQuest = async function (questId) {
     } catch (e) { console.error(e); }
 }
 
-window.editAdminUser = async function (userId, username, currentBalance, currentPower) {
-    const newBalanceStr = prompt(`Новый баланс для ${username}:`, currentBalance);
-    if (newBalanceStr === null || isNaN(parseInt(newBalanceStr))) return;
+// Global Modal Elements
+const adminEditModal = document.getElementById('admin-edit-modal');
+const adminEditId = document.getElementById('admin-edit-id');
+const adminEditUsername = document.getElementById('admin-edit-username');
+const adminEditBalance = document.getElementById('admin-edit-balance');
+const adminEditPower = document.getElementById('admin-edit-power');
+const adminEditRebirths = document.getElementById('admin-edit-rebirths');
+const adminEditRole = document.getElementById('admin-edit-role');
+const adminEditPassword = document.getElementById('admin-edit-password');
+const btnAdminEditSave = document.getElementById('btn-admin-edit-save');
 
-    const newPowerStr = prompt(`Новая сила клика для ${username}:`, currentPower);
-    if (newPowerStr === null || isNaN(parseInt(newPowerStr))) return;
+window.editAdminUser = function (userId, username, currentBalance, currentPower, currentRebirths, currentRole) {
+    adminEditId.value = userId;
+    adminEditUsername.value = username;
+    adminEditBalance.value = currentBalance;
+    adminEditPower.value = currentPower;
+    adminEditRebirths.value = currentRebirths;
+    adminEditRole.value = currentRole;
+    adminEditPassword.value = ''; // Always empty initially
+
+    adminEditModal.classList.remove('hidden');
+}
+
+btnAdminEditSave.addEventListener('click', async () => {
+    const userId = adminEditId.value;
+    const bodyData = {
+        username: adminEditUsername.value.trim(),
+        balance: adminEditBalance.value,
+        click_power: adminEditPower.value,
+        rebirths: adminEditRebirths.value,
+        role: adminEditRole.value,
+        new_password: adminEditPassword.value
+    };
 
     try {
         const res = await fetch(`${API_URL}/admin/users/${userId}`, {
@@ -446,20 +473,22 @@ window.editAdminUser = async function (userId, username, currentBalance, current
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${gameState.token}`
             },
-            body: JSON.stringify({
-                balance: parseInt(newBalanceStr),
-                click_power: parseInt(newPowerStr)
-            })
+            body: JSON.stringify(bodyData)
         });
 
         if (res.ok) {
+            adminEditModal.classList.add('hidden');
             fetchAdminStats();
-            alert(`Данные ${username} изменены.`);
+            alert('Данные изменены.');
         } else {
-            alert('Ошибка сервера');
+            const err = await res.json();
+            alert('Ошибка сервера: ' + err.error);
         }
-    } catch (e) { console.error(e); }
-}
+    } catch (e) {
+        console.error(e);
+        alert('Ошибка сети');
+    }
+});
 
 async function handleAddAdminQuest() {
     const title = document.getElementById('admin-quest-title').value.trim();

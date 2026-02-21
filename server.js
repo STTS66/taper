@@ -299,11 +299,51 @@ app.put('/api/admin/users/:id', authenticateToken, async (req, res) => {
             return res.status(403).json({ error: 'Access denied.' });
         }
         const { id } = req.params;
-        const { balance, click_power } = req.body;
-        await db.query(
-            'UPDATE users SET balance = $1, click_power = $2 WHERE id = $3',
-            [balance, click_power, id]
-        );
+        const { username, balance, click_power, rebirths, role, new_password } = req.body;
+
+        // Start building dynamic query
+        let updates = [];
+        let values = [];
+        let queryIndex = 1;
+
+        if (username !== undefined) {
+            updates.push(`username = $${queryIndex++}`);
+            values.push(username);
+        }
+        if (balance !== undefined) {
+            updates.push(`balance = $${queryIndex++}`);
+            values.push(parseInt(balance));
+        }
+        if (click_power !== undefined) {
+            updates.push(`click_power = $${queryIndex++}`);
+            values.push(parseInt(click_power));
+        }
+        if (rebirths !== undefined) {
+            updates.push(`rebirths = $${queryIndex++}`);
+            values.push(parseInt(rebirths));
+        }
+        if (role !== undefined) {
+            updates.push(`role = $${queryIndex++}`);
+            values.push(role);
+        }
+
+        // Handle password change separately to hash it
+        if (new_password && new_password.trim() !== '') {
+            const salt = await bcrypt.genSalt(10);
+            const hashed = await bcrypt.hash(new_password.trim(), salt);
+            updates.push(`password_hash = $${queryIndex++}`);
+            values.push(hashed);
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'No fields to update' });
+        }
+
+        // Add the ID
+        values.push(id);
+        const queryString = `UPDATE users SET ${updates.join(', ')} WHERE id = $${queryIndex}`;
+
+        await db.query(queryString, values);
         res.json({ success: true });
     } catch (err) {
         console.error(err);
