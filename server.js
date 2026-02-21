@@ -134,9 +134,6 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 });
 
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
 // Get Quests
 app.get('/api/quests', authenticateToken, async (req, res) => {
@@ -186,6 +183,10 @@ app.get('/api/admin/stats', authenticateToken, async (req, res) => {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
     }
+});
+
+app.use((req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
