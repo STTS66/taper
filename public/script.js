@@ -310,7 +310,7 @@ const btnAddQuest = document.getElementById('btn-add-quest');
 const adminQuestMsg = document.getElementById('admin-quest-msg');
 
 async function fetchAdminStats() {
-    if (!gameState.token || gameState.username !== 'admin') return;
+    if (!gameState.token || gameState.role !== 'admin') return;
 
     adminUserCountEl.textContent = '...';
     try {
